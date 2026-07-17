@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Defect Analytics Dashboard</title>
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <!-- Google Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #f8fafc; /* Slate 50 */
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9; /* Slate 100 */
+            --border: #e2e8f0; /* Slate 200 */
+            --text-main: #0f172a; /* Slate 900 */
+            --text-muted: #64748b; /* Slate 500 */
+            --accent: #4f46e5; /* Indigo 600 */
+            --accent-hover: #4338ca;
+            --accent-light: #eef2ff; /* Indigo 50 */
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        /* HEADER */
+        header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .header-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: var(--accent);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: 800; font-size: 20px;
+        }
+        .logo h1 { font-size: 1.25rem; font-weight: 800; line-height: 1.2; }
+        .logo p { font-size: 0.8rem; color: var(--text-muted); }
+
+        /* TABS NAV */
+        .nav-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-hover);
+            padding: 6px;
+            border-radius: 10px;
+        }
+        .tab-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: var(--bg-card);
+            color: var(--accent);
+            box-shadow: var(--shadow);
+        }
+        .tab-btn:hover:not(.active) { color: var(--text-main); }
+
+        /* MAIN LAYOUT */
+        .container {
+            max-width: 1280px;
+            margin: 2rem auto;
+            padding: 0 2rem 4rem;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* CARDS */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .card-header { margin-bottom: 1.5rem; }
+        .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .card-subtitle { font-size: 0.85rem; color: var(--text-muted); }
+
+        /* GRID */
+        .grid-2 { display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.5rem; }
+        @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+        /* CONTROL PANEL */
+        .control-panel {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+            flex-wrap: wrap;
+        }
+        .slider-group { flex-grow: 1; min-width: 250px; }
+        .slider-label { display: flex; justify-content: space-between; margin-bottom: 12px; }
+        .slider-label span { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); }
+        .slider-value { color: var(--accent); font-weight: 800; font-size: 1.1rem; }
+
+        input[type="range"] {
+            -webkit-appearance: none; width: 100%; height: 6px;
+            background: var(--border); border-radius: 5px; outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 20px; height: 20px;
+            background: var(--accent); border-radius: 50%; cursor: pointer;
+            border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn-primary {
+            padding: 12px 24px; background: var(--accent); color: white;
+            border: none; border-radius: 8px; font-weight: 600; font-size: 0.9rem;
+            cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px;
+        }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+        /* CHART CONTAINER - WAJIB ADA HEIGHT AGAR PLOTLY MUNCUL */
+        .chart-container { width: 100%; height: 380px; }
+
+        /* TABLE */
+        .table-wrapper { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+        th { background: var(--bg-base); color: var(--text-muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
+        tbody tr:hover { background: var(--bg-hover); }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; background: var(--accent-light); color: var(--accent); }
+
+        /* INFO BOXES */
+        .info-box { border-left: 4px solid var(--accent); background: var(--accent-light); padding: 1.5rem; border-radius: 0 8px 8px 0; margin-top: 1.5rem; }
+        .warning-box { border-left: 4px solid var(--warning); background: #fffbeb; padding: 1.5rem; border-radius: 0 8px 8px 0; margin-top: 1.5rem; }
+        .info-box h4, .warning-box h4 { margin-bottom: 8px; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+        .info-box p, .warning-box li { color: var(--text-muted); font-size: 0.9rem; line-height: 1.7; }
+        .warning-box ul { padding-left: 20px; margin-top: 8px; }
+
+        /* TOAST */
+        .toast {
+            position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: var(--text-main); color: white; padding: 12px 24px;
+            border-radius: 8px; font-weight: 600; font-size: 0.9rem; z-index: 9999;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); transition: transform 0.3s ease;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        h2 { margin-bottom: 0.5rem; font-size: 1.5rem; font-weight: 800; }
+        .page-desc { color: var(--text-muted); margin-bottom: 1.5rem; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-container">
+            <div class="logo">
+                <div class="logo-icon">D</div>
+                <div>
+                    <h1>Defect Analytic</h1>
+                    <p>Project Kecerdasan Buatan</p>
+                </div>
+            </div>
+            <nav class="nav-tabs">
+                <button class="tab-btn active" onclick="switchTab('clustering', this)">Hasil Clustering</button>
+                <button class="tab-btn" onclick="switchTab('insights', this)">Insights Bisnis</button>
+                <button class="tab-btn" onclick="switchTab('eda', this)">EDA & Dataset</button>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        
+        <!-- TAB 1: CLUSTERING -->
+        <div id="clustering" class="tab-content active">
+            <h2>Analisis Clustering Cacat Produk</h2>
+            <p class="page-desc">Kelompokkan data cacat produk untuk menemukan pola kerusakan dan optimasi biaya.</p>
+
+            <div class="control-panel">
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Jumlah Cluster (K)</span>
+                        <span class="slider-value" id="kValue">3</span>
+                    </div>
+                    <input type="range" id="kSlider" min="2" max="4" value="3" oninput="updateK(this.value)">
+                </div>
+                <button class="btn-primary" onclick="runClustering()">
+                    Proses Clustering
+                </button>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Visualisasi Cluster</div>
+                        <div class="card-subtitle">Biaya Perbaikan vs Tingkat Keparahan</div>
+                    </div>
+                    <div id="scatterPlot" class="chart-container"></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Distribusi Data</div>
+                        <div class="card-subtitle">Jumlah item per cluster</div>
+                    </div>
+                    <div id="barChart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: INSIGHTS -->
+        <div id="insights" class="tab-content">
+            <h2>Interpretasi & Insights Bisnis</h2>
+            <p class="page-desc">Karakteristik dominan dari masing-masing cluster yang terbentuk.</p>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Ringkasan Karakteristik Cluster</div>
+                </div>
+                <div class="table-wrapper" id="summaryTableContainer"></div>
+            </div>
+
+            <div class="grid-2">
+                <div class="info-box">
+                    <h4>🧠 Penjelasan Model</h4>
+                    <p>Algoritma <strong>K-Means Clustering</strong> digunakan untuk mengelompokkan data cacat berdasarkan kesamaan karakteristik (Tipe Cacat, Lokasi, Severity, Metode Inspeksi, dan Biaya Perbaikan). Proses scaling dilakukan agar fitur numerik (biaya) dan kategorikal memiliki bobot yang seimbang.</p>
+                </div>
+                <div class="warning-box">
+                    <h4>💡 Insights Manufaktur</h4>
+                    <ul>
+                        <li><strong>Alokasi Anggaran:</strong> Fokus pengendalian kualitas pada cluster dengan biaya perbaikan tertinggi.</li>
+                        <li><strong>Optimasi Inspeksi:</strong> Cacat 'Critical' yang dideteksi 'Manual' perlu beralih ke 'Automated'.</li>
+                        <li><strong>Perbaikan Proses:</strong> Evaluasi mesin/stasiun kerja yang menghasilkan cacat lokasi dominan.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: EDA -->
+        <div id="eda" class="tab-content">
+            <h2>Eksplorasi Data Awal (EDA)</h2>
+            <p class="page-desc">Visualisasi dan sampel data mentah sebelum diolah.</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Tipe Cacat vs Severity</div>
+                    </div>
+                    <div id="edaBarChart" class="chart-container"></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Distribusi Biaya Perbaikan</div>
+                    </div>
+                    <div id="edaHistChart" class="chart-container"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Sampel Dataset Asli</div>
+                    <div class="card-subtitle">Data yang diambil langsung dari defects_data.csv</div>
+                </div>
+                <div class="table-wrapper">
+                    <table id="dataTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th><th>Prod ID</th><th>Type</th><th>Location</th><th>Severity</th><th>Inspection</th><th>Cost ($)</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Clustering Selesai Diproses ✔</div>
+
+    <script>
+        // --- DATA ASLI DARI DATASET USER (30 Baris Pertama) ---
+        const rawData = [
+            {id:1, prod:15, type:'Structural', loc:'Component', sev:'Minor', meth:'Visual Inspection', cost:245.47},
+            {id:2, prod:6, type:'Functional', loc:'Component', sev:'Minor', meth:'Visual Inspection', cost:26.87},
+            {id:3, prod:84, type:'Structural', loc:'Internal', sev:'Minor', meth:'Automated Testing', cost:835.81},
+            {id:4, prod:10, type:'Functional', loc:'Internal', sev:'Critical', meth:'Automated Testing', cost:444.47},
+            {id:5, prod:14, type:'Cosmetic', loc:'Component', sev:'Minor', meth:'Manual Testing', cost:823.64},
+            {id:6, prod:17, type:'Functional', loc:'Internal', sev:'Moderate', meth:'Visual Inspection', cost:788.11},
+            {id:7, prod:85, type:'Cosmetic', loc:'Internal', sev:'Critical', meth:'Manual Testing', cost:33.68},
+            {id:8, prod:90, type:'Structural', loc:'Internal', sev:'Moderate', meth:'Manual Testing', cost:65.56},
+            {id:9, prod:30, type:'Structural', loc:'Component', sev:'Critical', meth:'Manual Testing', cost:848.61},
+            {id:10, prod:20, type:'Structural', loc:'Component', sev:'Critical', meth:'Visual Inspection', cost:478.48},
+            {id:11, prod:45, type:'Structural', loc:'Surface', sev:'Moderate', meth:'Automated Testing', cost:217.96},
+            {id:12, prod:86, type:'Structural', loc:'Component', sev:'Minor', meth:'Manual Testing', cost:485.02},
+            {id:13, prod:87, type:'Cosmetic', loc:'Component', sev:'Minor', meth:'Visual Inspection', cost:714.63},
+            {id:14, prod:72, type:'Cosmetic', loc:'Surface', sev:'Critical', meth:'Manual Testing', cost:603.94},
+            {id:15, prod:74, type:'Cosmetic', loc:'Component', sev:'Critical', meth:'Manual Testing', cost:189.55},
+            {id:16, prod:10, type:'Functional', loc:'Component', sev:'Minor', meth:'Automated Testing', cost:458.79},
+            {id:17, prod:53, type:'Structural', loc:'Internal', sev:'Minor', meth:'Visual Inspection', cost:509.35},
+            {id:18, prod:63, type:'Cosmetic', loc:'Component', sev:'Critical', meth:'Visual Inspection', cost:538.99},
+            {id:19, prod:28, type:'Functional', loc:'Internal', sev:'Critical', meth:'Manual Testing', cost:34.93},
+            {id:20, prod:81, type:'Structural', loc:'Internal', sev:'Moderate', meth:'Manual Testing', cost:557.11},
+            {id:21, prod:67, type:'Functional', loc:'Surface', sev:'Minor', meth:'Visual Inspection', cost:831.43},
+            {id:22, prod:6, type:'Structural', loc:'Surface', sev:'Minor', meth:'Visual Inspection', cost:504.90},
+            {id:23, prod:33, type:'Structural', loc:'Surface', sev:'Moderate', meth:'Automated Testing', cost:349.23},
+            {id:24, prod:15, type:'Structural', loc:'Component', sev:'Critical', meth:'Visual Inspection', cost:560.39},
+            {id:25, prod:13, type:'Cosmetic', loc:'Surface', sev:'Moderate', meth:'Manual Testing', cost:629.71},
+            {id:26, prod:39, type:'Structural', loc:'Component', sev:'Moderate', meth:'Visual Inspection', cost:975.44},
+            {id:27, prod:60, type:'Cosmetic', loc:'Component', sev:'Moderate', meth:'Manual Testing', cost:737.54},
+            {id:28, prod:42, type:'Structural', loc:'Component', sev:'Critical', meth:'Manual Testing', cost:592.87},
+            {id:29, prod:3, type:'Structural', loc:'Component', sev:'Moderate', meth:'Automated Testing', cost:99.82},
+            {id:30, prod:17, type:'Functional', loc:'Surface', sev:'Critical', meth:'Visual Inspection', cost:106.34}
+        ];
+        
+        // Label Encoding Maps
+        const encMaps = {
+            type: {'Structural': 0, 'Functional': 1, 'Cosmetic': 2},
+            loc: {'Component': 0, 'Internal': 1, 'Surface': 2},
+            sev: {'Minor': 0, 'Moderate': 1, 'Critical': 2},
+            meth: {'Visual Inspection': 0, 'Automated Testing': 1, 'Manual Testing': 2}
+        };
+
+        // Preprocess Data: Ubah kategorikal jadi numerik, scale biaya
+        const features = rawData.map(d => [
+            encMaps.type[d.type],
+            encMaps.loc[d.loc],
+            encMaps.sev[d.sev] * 2, // Diberi bobot agar severity mempengaruhi cluster signifikan
+            encMaps.meth[d.meth],
+            d.cost / 1000 // Scale down biaya agar 0-1
+        ]);
+
+        // --- K-MEANS ALGORITHM (ROBUST) ---
+        function kMeans(data, k, maxIter = 100) {
+            if (data.length === 0) return [];
+            let centroids = [];
+            // Init random centroids
+            for (let i = 0; i < k; i++) {
+                centroids.push([...data[Math.floor(Math.random() * data.length)]]);
+            }
+
+            let assignments = new Array(data.length).fill(-1);
+
+            for (let iter = 0; iter < maxIter; iter++) {
+                let changed = false;
+                
+                // Assign clusters
+                for (let i = 0; i < data.length; i++) {
+                    let minDist = Infinity, cluster = 0;
+                    for (let c = 0; c < k; c++) {
+                        let dist = 0;
+                        for (let j = 0; j < data[i].length; j++) {
+                            dist += Math.pow(data[i][j] - centroids[c][j], 2);
+                        }
+                        dist = Math.sqrt(dist);
+                        if (dist < minDist) { minDist = dist; cluster = c; }
+                    }
+                    if (assignments[i] !== cluster) { assignments[i] = cluster; changed = true; }
+                }
+
+                // Update centroids
+                let newCentroids = Array(k).fill(0).map(() => Array(data[0].length).fill(0));
+                let counts = Array(k).fill(0);
+                
+                for (let i = 0; i < data.length; i++) {
+                    counts[assignments[i]]++;
+                    for (let j = 0; j < data[i].length; j++) {
+                        newCentroids[assignments[i]][j] += data[i][j];
+                    }
+                }
+
+                for (let c = 0; c < k; c++) {
+                    if (counts[c] > 0) {
+                        for (let j = 0; j < newCentroids[c].length; j++) {
+                            newCentroids[c][j] /= counts[c];
+                        }
+                        centroids[c] = newCentroids[c];
+                    }
+                }
+                if (!changed) break;
+            }
+            return assignments;
+        }
+
+        // --- UI & PLOTTING ---
+        let currentK = 3;
+        let currentAssignments = [];
+
+        // Global Plotly Layout Config (Light Theme)
+        const plotLayoutBase = {
+            paper_bgcolor: 'white',
+            plot_bgcolor: 'white',
+            font: { family: 'Inter, sans-serif', color: '#64748b', size: 12 },
+            margin: { l: 50, r: 20, t: 20, b: 40 },
+            xaxis: { gridcolor: '#e2e8f0', zerolinecolor: '#e2e8f0' },
+            yaxis: { gridcolor: '#e2e8f0', zerolinecolor: '#e2e8f0' }
+        };
+
+        function updateK(val) {
+            document.getElementById('kValue').innerText = val;
+            currentK = parseInt(val);
+        }
+
+        function switchTab(tabName, element) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(c => c.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            element.classList.add('active');
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
+        }
+
+        function showToast() {
+            const toast = document.getElementById("toast");
+            toast.className = "toast show";
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        function runClustering() {
+            currentAssignments = kMeans(features, currentK);
+            rawData.forEach((d, i) => d.cluster = currentAssignments[i]);
+            renderScatterPlot();
+            renderBarChart();
+            renderSummaryTable();
+            showToast();
+        }
+
+        function renderScatterPlot() {
+            const traces = [];
+            const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444'];
+            
+            for (let c = 0; c < currentK; c++) {
+                let x = [], y = [], text = [];
+                rawData.filter(d => d.cluster === c).forEach(d => {
+                    x.push(d.cost);
+                    y.push(encMaps.sev[d.sev]);
+                    text.push(`Type: ${d.type}<br>Loc: ${d.loc}<br>Method: ${d.meth}`);
+                });
+                
+                traces.push({
+                    x: x, y: y, text: text, mode: 'markers', type: 'scatter',
+                    name: `Cluster ${c + 1}`,
+                    marker: { size: 10, color: colors[c], opacity: 0.8, line: { width: 1, color: 'white' } }
+                });
+            }
+            const layout = {
+                ...plotLayoutBase,
+                xaxis: { ...plotLayoutBase.xaxis, title: 'Biaya Perbaikan ($)' },
+                yaxis: { ...plotLayoutBase.yaxis, title: 'Severity', dtick: 1 }
+            };
+            Plotly.newPlot('scatterPlot', traces, layout, { responsive: true, displayModeBar: false });
+        }
+
+        function renderBarChart() {
+            let counts = Array(currentK).fill(0);
+            currentAssignments.forEach(c => counts[c]++);
+            const trace = {
+                x: counts.map((_, i) => `Cluster ${i + 1}`), y: counts, type: 'bar',
+                marker: { color: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444'] }
+            };
+            Plotly.newPlot('barChart', [trace], { ...plotLayoutBase }, { responsive: true, displayModeBar: false });
+        }
+
+        function getMode(arr) {
+            if (arr.length === 0) return null;
+            const counts = {};
+            let max = 0, mode = arr[0];
+            for (const v of arr) { counts[v] = (counts[v] || 0) + 1; if (counts[v] > max) { max = counts[v]; mode = v; } }
+            return mode;
+        }
+
+        function renderSummaryTable() {
+            let html = `<table><thead><tr><th>Cluster</th><th>Cacat Dominan</th><th>Severity</th><th>Lokasi</th><th>Inspeksi</th><th>Biaya Rata-rata</th></tr></thead><tbody>`;
+            for (let c = 0; c < currentK; c++) {
+                let clusterData = rawData.filter(d => d.cluster === c);
+                if(clusterData.length === 0) continue;
+                let avgCost = (clusterData.reduce((sum, d) => sum + d.cost, 0) / clusterData.length).toFixed(2);
+                html += `<tr>
+                    <td><span class="badge">Cluster ${c + 1}</span></td>
+                    <td>${getMode(clusterData.map(d => d.type))}</td>
+                    <td>${getMode(clusterData.map(d => d.sev))}</td>
+                    <td>${getMode(clusterData.map(d => d.loc))}</td>
+                    <td>${getMode(clusterData.map(d => d.meth))}</td>
+                    <td style="font-weight:700; color:var(--accent)">$${avgCost}</td>
+                </tr>`;
+            }
+            html += `</tbody></table>`;
+            document.getElementById('summaryTableContainer').innerHTML = html;
+        }
+
+        function renderEDA() {
+            const sevTypes = ['Minor', 'Moderate', 'Critical'];
+            const defTypes = ['Structural', 'Functional', 'Cosmetic'];
+            const traces = [];
+            const edaColors = ['#10b981', '#f59e0b', '#ef4444'];
+
+            sevTypes.forEach((sev, i) => {
+                let counts = defTypes.map(dt => rawData.filter(d => d.sev === sev && d.type === dt).length);
+                traces.push({ x: defTypes, y: counts, name: sev, type: 'bar', marker: { color: edaColors[i] } });
+            });
+
+            Plotly.newPlot('edaBarChart', traces, { ...plotLayoutBase, barmode: 'group' }, { responsive: true, displayModeBar: false });
+            Plotly.newPlot('edaHistChart', [{ x: rawData.map(d => d.cost), type: 'histogram', marker: { color: '#4f46e5' } }], { ...plotLayoutBase }, { responsive: true, displayModeBar: false });
+
+            let tableHtml = '';
+            rawData.forEach(d => {
+                tableHtml += `<tr><td>${d.id}</td><td>${d.prod}</td><td>${d.type}</td><td>${d.loc}</td><td>${d.sev}</td><td>${d.meth}</td><td>$${d.cost}</td></tr>`;
+            });
+            document.querySelector('#dataTable tbody').innerHTML = tableHtml;
+        }
+
+        // Initialize App on Load
+        window.onload = () => {
+            renderEDA();
+            runClustering(); // Run initial clustering
+        };
+    </script>
+</body>
+</html>
